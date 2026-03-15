@@ -1,0 +1,8 @@
+{
+  "startDate": "2026-03-16",
+  "startHour": 1,
+  "startMinute": 00,
+  "endHour": 23,
+  "endMinute": 00,
+  "intervalMinutes": 60
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:\\\\Users\\\\i0swi\\\\OneDrive\\\\デスクトップ\\\\予約投稿\" status)",
+      "Bash(gh auth:*)",
+      "Bash(git --version)",
+      "Bash(\"c:\\\\Users\\\\i0swi\\\\OneDrive\\\\デスクトップ\\\\予約投稿\\\\.gitignore\":*)"
+    ]
+  }
+}

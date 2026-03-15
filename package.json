@@ -1,0 +1,38 @@
+{
+  "name": "x-scheduler-builder",
+  "version": "1.0.0",
+  "description": "X Scheduler Builder MVP",
+  "main": "dist/cli/index.js",
+  "scripts": {
+    "start": "ts-node src/cli/index.ts",
+    "setup-auth": "ts-node src/cli/setupAuth.ts",
+    "chrome-debug": "start chrome --remote-debugging-port=9222 --user-data-dir=\"%TEMP%\\chrome-automation\"",
+    "test": "jest",
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^14.0.3",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.3.1",
+    "playwright": "^1.58.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.0",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-playwright": "^2.9.0",
+    "jest": "^30.3.0",
+    "prettier": "^3.8.1",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
