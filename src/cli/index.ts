@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs/promises';
 import { program } from 'commander';
 import dotenv from 'dotenv';
 import { AppConfig, RunSummary } from '../domain/types';
@@ -47,15 +48,15 @@ async function main() {
     const scheduleConfigPath = path.resolve(process.cwd(), 'schedule_config.json');
     let scheduleConfig;
     try {
-      const fs = require('fs');
-      scheduleConfig = JSON.parse(fs.readFileSync(scheduleConfigPath, 'utf-8'));
+      const raw = await fs.readFile(scheduleConfigPath, 'utf-8');
+      scheduleConfig = JSON.parse(raw);
       logger.log(`Loaded schedule config: ${JSON.stringify(scheduleConfig)}`);
-    } catch (err) {
-      logger.log('Warning: schedule_config.json not found or invalid. Using defaults.');
+    } catch {
+      logger.warn('schedule_config.json not found or invalid. Using defaults.');
     }
 
     // 1. Load & Validate
-    const rawPosts = loadPostsFromMarkdown(config.inputPath);
+    const rawPosts = await loadPostsFromMarkdown(config.inputPath);
     const validationErrors = validatePosts(rawPosts);
     if (validationErrors.length > 0) {
       logger.error('Validation failed:');
@@ -92,7 +93,7 @@ async function main() {
     }
 
     await context.close();
-    
+
     // 4. Summary
     logger.log('--- Execution Summary ---');
     logger.log(`Total: ${summary.total}`);

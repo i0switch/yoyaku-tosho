@@ -5,6 +5,7 @@
   "main": "dist/cli/index.js",
   "scripts": {
     "start": "ts-node src/cli/index.ts",
+    "gui": "ts-node src/gui/server.ts",
     "setup-auth": "ts-node src/cli/setupAuth.ts",
     "chrome-debug": "start chrome --remote-debugging-port=9222 --user-data-dir=\"%TEMP%\\chrome-automation\"",
     "test": "jest",
@@ -12,9 +13,10 @@
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts"
   },
+  "private": true,
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "i0swi",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "commander": "^14.0.3",
     "date-fns": "^4.1.0",

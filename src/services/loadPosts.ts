@@ -1,16 +1,17 @@
-import fs from 'fs';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import { InputPost } from '../domain/types';
 
 /**
  * Loads posts from a markdown file separated by '---'.
  */
-export function loadPostsFromMarkdown(filePath: string): InputPost[] {
-  if (!fs.existsSync(filePath)) {
+export async function loadPostsFromMarkdown(filePath: string): Promise<InputPost[]> {
+  if (!existsSync(filePath)) {
     throw new Error(`Input file not found: ${filePath}`);
   }
 
-  const content = fs.readFileSync(filePath, 'utf-8');
-  
+  const content = await fs.readFile(filePath, 'utf-8');
+
   // Split by '---' line.
   // We use a regex to ensure it only splits on lines that are exactly '---' (plus optional whitespace)
   const blocks = content.split(/^---$\s*/m);

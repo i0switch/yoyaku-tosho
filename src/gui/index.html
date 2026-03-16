@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X スケジューラー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 32px;
+    }
+
+    /* ── Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 600px) { .cards { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #1e2433;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .step-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: #2d3748;
+      color: #94a3b8;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .card p {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* ── Status dot ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #374151;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .dot.starting { background: #f59e0b; animation: pulse 1s infinite; }
+    .dot.running  { background: #22c55e; }
+    .dot.finished { background: #3b82f6; }
+    .dot.error    { background: #ef4444; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-chrome {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+    }
+    .btn-chrome:hover:not(:disabled) { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .btn-chrome.running {
+      background: linear-gradient(135deg, #166534, #15803d);
+    }
+
+    .btn-scheduler {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+    }
+    .btn-scheduler:hover:not(:disabled) { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .btn-scheduler.running {
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+    }
+    .btn-scheduler.finished {
+      background: linear-gradient(135deg, #1e3a5f, #1e40af);
+    }
+
+    /* ── Log Panel ── */
+    .log-panel {
+      background: #1e2433;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2d3748;
+      background: #161b2a;
+    }
+    .log-header span {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .log-header button {
+      font-size: 11px;
+      color: #475569;
+      background: none;
+      border: 1px solid #2d3748;
+      border-radius: 4px;
+      padding: 2px 10px;
+      cursor: pointer;
+    }
+    .log-header button:hover { color: #94a3b8; border-color: #475569; }
+
+    .log-body {
+      height: 320px;
+      overflow-y: auto;
+      padding: 12px 0;
+      font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 10px;
+      padding: 2px 16px;
+      line-height: 1.6;
+    }
+    .log-entry:hover { background: #1a2035; }
+
+    .log-time {
+      color: #334155;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+    .log-tag {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      align-self: flex-start;
+      margin-top: 3px;
+    }
+    .log-tag.chrome    { background: #1e3a8a; color: #93c5fd; }
+    .log-tag.scheduler { background: #4c1d95; color: #c4b5fd; }
+    .log-tag.system    { background: #1f2937; color: #6b7280; }
+
+    .log-line {
+      color: #cbd5e1;
+      word-break: break-all;
+    }
+    .log-line.error { color: #fca5a5; }
+
+    /* ── Connection lost banner ── */
+    .banner {
+      display: none;
+      background: #7f1d1d;
+      border: 1px solid #991b1b;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #fca5a5;
+    }
+    .banner.show { display: block; }
+  </style>
+</head>
+<body>
+
+  <h1>X スケジューラー</h1>
+  <p class="subtitle">Chrome を起動してから、スケジューラーを実行してください</p>
+
+  <div class="banner" id="banner">
+    接続が切れました。ページをリロードしてください。
+  </div>
+
+  <div class="cards">
+
+    <!-- Chrome Card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-badge">STEP 1</span>
+        <h2>Chrome デバッグ起動</h2>
+      </div>
+      <p>デバッグポート付きで Chrome を起動します。<br>すでに起動済みならスキップ可。</p>
+      <div class="status-row">
+        <div class="dot" id="chrome-dot"></div>
+        <span class="status-text" id="chrome-status-text">停止中</span>
+      </div>
+      <button class="btn btn-chrome" id="chrome-btn" onclick="startChrome()">
+        Chrome を起動
+      </button>
+    </div>
+
+    <!-- Scheduler Card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="step-badge">STEP 2</span>
+        <h2>スケジューラー</h2>
+      </div>
+      <p>posts.md の内容を読み込んで<br>予約投稿を実行します。</p>
+      <div class="status-row">
+        <div class="dot" id="scheduler-dot"></div>
+        <span class="status-text" id="scheduler-status-text">停止中</span>
+      </div>
+      <button class="btn btn-scheduler" id="scheduler-btn" onclick="toggleScheduler()">
+        スケジューラー開始
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Log Panel -->
+  <div class="log-panel">
+    <div class="log-header">
+      <span>ログ</span>
+      <button onclick="clearLogs()">クリア</button>
+    </div>
+    <div class="log-body" id="log-body"></div>
+  </div>
+
+  <script>
+    let schedulerRunning = false;
+
+    // ── SSE ──────────────────────────────────────────────────────────
+    function connectSSE() {
+      const es = new EventSource('/api/events');
+
+      es.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'status') applyStatus(msg);
+        if (msg.type === 'log')    appendLog(msg);
+      };
+
+      es.onerror = () => {
+        document.getElementById('banner').classList.add('show');
+        es.close();
+        setTimeout(connectSSE, 3000); // reconnect
+      };
+
+      es.onopen = () => {
+        document.getElementById('banner').classList.remove('show');
+      };
+    }
+    connectSSE();
+
+    // ── Status ───────────────────────────────────────────────────────
+    const CHROME_LABELS = {
+      stopped:  { text: '停止中',     cls: '' },
+      starting: { text: '起動中...',  cls: 'starting' },
+      running:  { text: '起動中 ✓',   cls: 'running' },
+    };
+    const SCHEDULER_LABELS = {
+      stopped:  { text: '停止中',       cls: '' },
+      running:  { text: '実行中...',    cls: 'running' },
+      finished: { text: '完了 ✓',       cls: 'finished' },
+      error:    { text: 'エラー',       cls: 'error' },
+    };
+
+    function applyStatus({ chrome, scheduler }) {
+      // Chrome
+      const cd = document.getElementById('chrome-dot');
+      const cs = document.getElementById('chrome-status-text');
+      const cb = document.getElementById('chrome-btn');
+      const ci = CHROME_LABELS[chrome] || CHROME_LABELS.stopped;
+      cd.className = 'dot ' + ci.cls;
+      cs.textContent = ci.text;
+      if (chrome === 'running') {
+        cb.textContent = 'Chrome 起動済み ✓';
+        cb.classList.add('running');
+        cb.disabled = true;
+      } else if (chrome === 'starting') {
+        cb.textContent = '起動中...';
+        cb.disabled = true;
+      } else {
+        cb.textContent = 'Chrome を起動';
+        cb.classList.remove('running');
+        cb.disabled = false;
+      }
+
+      // Scheduler
+      const sd = document.getElementById('scheduler-dot');
+      const ss = document.getElementById('scheduler-status-text');
+      const sb = document.getElementById('scheduler-btn');
+      const si = SCHEDULER_LABELS[scheduler] || SCHEDULER_LABELS.stopped;
+      sd.className = 'dot ' + si.cls;
+      ss.textContent = si.text;
+      schedulerRunning = (scheduler === 'running');
+
+      if (scheduler === 'running') {
+        sb.textContent = '停止する';
+        sb.classList.add('running');
+        sb.classList.remove('finished');
+      } else if (scheduler === 'finished') {
+        sb.textContent = 'もう一度実行';
+        sb.classList.add('finished');
+        sb.classList.remove('running');
+      } else {
+        sb.textContent = 'スケジューラー開始';
+        sb.classList.remove('running', 'finished');
+      }
+    }
+
+    // ── Log ──────────────────────────────────────────────────────────
+    function appendLog({ target, line, ts }) {
+      const body = document.getElementById('log-body');
+      const time = new Date(ts).toLocaleTimeString('ja-JP');
+      const isError = line.includes('[ERR]') || line.includes('ERROR');
+
+      const el = document.createElement('div');
+      el.className = 'log-entry';
+      el.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-tag ${target}">${target}</span>
+        <span class="log-line ${isError ? 'error' : ''}">${escHtml(line)}</span>
+      `;
+      body.appendChild(el);
+
+      // Auto-scroll (only if near bottom)
+      const threshold = 60;
+      const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < threshold;
+      if (nearBottom) body.scrollTop = body.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('log-body').innerHTML = '';
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Actions ──────────────────────────────────────────────────────
+    async function startChrome() {
+      document.getElementById('chrome-btn').disabled = true;
+      await fetch('/api/chrome/start', { method: 'POST' });
+    }
+
+    async function toggleScheduler() {
+      if (schedulerRunning) {
+        await fetch('/api/scheduler/stop', { method: 'POST' });
+      } else {
+        await fetch('/api/scheduler/start', { method: 'POST' });
+      }
+    }
+  </script>
+</body>
+</html>

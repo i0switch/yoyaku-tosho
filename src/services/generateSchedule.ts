@@ -1,5 +1,4 @@
 import {
-  addHours,
   setHours,
   setMinutes,
   setSeconds,
@@ -50,24 +49,23 @@ export function generateSchedule(
 
 function getNextAvailableSlot(ref: Date, config: ScheduleConfig): Date {
   let date = new Date(ref);
-  
+
   if (config.startDate) {
     try {
       const parsedStart = parseISO(config.startDate);
       date.setFullYear(parsedStart.getFullYear());
       date.setMonth(parsedStart.getMonth());
       date.setDate(parsedStart.getDate());
-      
+
       date = setHours(date, config.startHour);
       date = setMinutes(date, config.startMinute);
       date = setSeconds(date, 0);
       return date;
     } catch (e) {
-      // Fallback
+      // Fallback to auto-scheduling
     }
   }
 
-  date = setMinutes(date, date.getMinutes() + (config.intervalMinutes > 60 ? 0 : 1));
   date = setSeconds(date, 0);
 
   if (isBeforeWindow(date, config)) {
@@ -78,26 +76,39 @@ function getNextAvailableSlot(ref: Date, config: ScheduleConfig): Date {
     return moveToStartOfWindow(addDays(date, 1), config);
   }
 
-  // Find next slot within today
-  let nextSlot = addMinutes(date, config.intervalMinutes);
-  if (config.intervalMinutes >= 60) {
-    nextSlot = setMinutes(nextSlot, 0); 
-  }
+  // Advance to the next interval boundary
+  const nextSlot = snapToNextInterval(date, config.intervalMinutes);
 
-  if (isAfterWindow(nextSlot, config) || (isBeforeWindow(nextSlot, config) && nextSlot.getDate() === date.getDate())) {
+  if (isAfterWindow(nextSlot, config)) {
     return moveToStartOfWindow(addDays(date, 1), config);
   }
-  
+
   return nextSlot;
+}
+
+/**
+ * Snaps the given date forward to the next interval boundary.
+ * e.g. 10:00 with 30-min interval → 10:30; 10:00 with 60-min → 11:00
+ */
+function snapToNextInterval(date: Date, intervalMinutes: number): Date {
+  const totalMinutes = date.getHours() * 60 + date.getMinutes();
+  const nextBoundary = Math.ceil((totalMinutes + 1) / intervalMinutes) * intervalMinutes;
+  const h = Math.floor(nextBoundary / 60);
+  const m = nextBoundary % 60;
+  let result = setSeconds(setMinutes(setHours(new Date(date), h % 24), m), 0);
+  if (h >= 24) {
+    result = addDays(result, 1);
+  }
+  return result;
 }
 
 function advanceSlot(current: Date, config: ScheduleConfig): Date {
   const next = addMinutes(current, config.intervalMinutes);
-  
+
   if (isAfterWindow(next, config) || isBeforeWindow(next, config)) {
     return moveToStartOfWindow(addDays(current, 1), config);
   }
-  
+
   return next;
 }
 

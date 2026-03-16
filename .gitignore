@@ -4,3 +4,11 @@ screenshots/
 storageState.json
 *.log
 .env
+
+# AI tool configs (local only)
+.agent/
+.agents/
+.codex/
+.gemini/
+.claude/settings.local.json
+.mcp.json

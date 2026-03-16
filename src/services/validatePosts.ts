@@ -1,4 +1,14 @@
+import { z } from 'zod';
 import { InputPost } from '../domain/types';
+
+const InputPostSchema = z.object({
+  text: z
+    .string()
+    .refine((s) => s.trim().length > 0, { message: 'Post content must not be empty' })
+    .refine((s) => s.length <= 5000, { message: 'Post is too long (max 5000 characters)' }),
+  mediaPaths: z.array(z.string()).optional(),
+  scheduledAt: z.string().optional(),
+});
 
 export function validatePosts(posts: InputPost[]): string[] {
   const errors: string[] = [];
@@ -9,14 +19,11 @@ export function validatePosts(posts: InputPost[]): string[] {
   }
 
   posts.forEach((post, index) => {
-    if (!post.text || post.text.trim().length === 0) {
-      errors.push(`Post at index ${index} has empty content.`);
-    }
-    
-    // X roughly allows up to 280 characters for legacy but we can be more flexible here
-    // for MVP. Let's just flag dangerously long ones (e.g. > 10000 chars as likely errors)
-    if (post.text.length > 5000) {
-       errors.push(`Post at index ${index} is too long (${post.text.length} characters).`);
+    const result = InputPostSchema.safeParse(post);
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        errors.push(`Post at index ${index}: ${issue.message}`);
+      });
     }
   });
 

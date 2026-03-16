@@ -1,10 +1,9 @@
 import { generateSchedule } from './generateSchedule';
-import { setHours, setMinutes, parseISO } from 'date-fns';
 import { ScheduleConfig } from '../domain/types';
 
 describe('generateSchedule', () => {
   const refDate = new Date('2026-03-14T10:00:00'); // 10:00:00
-  
+
   const defaultConfig: ScheduleConfig = {
     startHour: 7,
     startMinute: 0,
@@ -16,7 +15,7 @@ describe('generateSchedule', () => {
   it('should assign sequential hourly slots starting from next hour (default)', () => {
     const posts = [{ text: 'P1' }, { text: 'P2' }];
     const schedule = generateSchedule(posts, refDate, defaultConfig);
-    
+
     expect(schedule[0].scheduledAt).toContain('11:00');
     expect(schedule[1].scheduledAt).toContain('12:00');
   });
@@ -31,7 +30,7 @@ describe('generateSchedule', () => {
     };
     const posts = [{ text: 'P1' }, { text: 'P2' }];
     const schedule = generateSchedule(posts, refDate, customConfig);
-    
+
     expect(schedule[0].scheduledAt).toContain('10:30');
     expect(schedule[1].scheduledAt).toContain('11:00');
   });
@@ -47,7 +46,7 @@ describe('generateSchedule', () => {
     // ref is 10:00
     const posts = [{ text: 'P1' }, { text: 'P2' }];
     const schedule = generateSchedule(posts, refDate, preciseConfig);
-    
+
     expect(schedule[0].scheduledAt).toContain('10:45');
     expect(schedule[1].scheduledAt).toContain('11:15');
     // A 3rd post would roll over to next day 10:45
@@ -57,7 +56,7 @@ describe('generateSchedule', () => {
     const lateRef = new Date('2026-03-14T23:00:00');
     const posts = [{ text: 'P1' }];
     const schedule = generateSchedule(posts, lateRef, defaultConfig);
-    
+
     expect(schedule[0].scheduledAt).toContain('2026-03-15T07:00:00');
   });
 
@@ -65,7 +64,7 @@ describe('generateSchedule', () => {
     const nightRef = new Date('2026-03-14T21:00:00');
     const posts = [{ text: 'P1' }, { text: 'P2' }];
     const schedule = generateSchedule(posts, nightRef, defaultConfig);
-    
+
     expect(schedule[0].scheduledAt).toContain('22:00');
     expect(schedule[1].scheduledAt).toContain('2026-03-15T07:00:00');
   });
@@ -81,7 +80,43 @@ describe('generateSchedule', () => {
     };
     const posts = [{ text: 'P1' }];
     const schedule = generateSchedule(posts, refDate, configWithDate);
-    
+
     expect(schedule[0].scheduledAt).toBe('2026-04-01T09:00:00');
+  });
+
+  it('should preserve manually set scheduledAt and not advance slot', () => {
+    const posts = [
+      { text: 'P1', scheduledAt: '2026-05-01T12:00:00' },
+      { text: 'P2' },
+    ];
+    const schedule = generateSchedule(posts, refDate, defaultConfig);
+
+    expect(schedule[0].scheduledAt).toBe('2026-05-01T12:00:00');
+    // P2 should use the first auto slot (not advance past P1's manual time)
+    expect(schedule[1].scheduledAt).toContain('11:00');
+  });
+
+  it('should assign correct ids and order', () => {
+    const posts = [{ text: 'A' }, { text: 'B' }];
+    const schedule = generateSchedule(posts, refDate, defaultConfig);
+
+    expect(schedule[0].id).toBe('post-0');
+    expect(schedule[1].id).toBe('post-1');
+    expect(schedule[0].order).toBe(0);
+    expect(schedule[1].order).toBe(1);
+  });
+
+  it('should span multiple days for many posts', () => {
+    const posts = Array.from({ length: 20 }, (_, i) => ({ text: `Post ${i}` }));
+    const schedule = generateSchedule(posts, refDate, defaultConfig);
+
+    const dates = schedule.map((p) => p.scheduledAt.substring(0, 10));
+    const uniqueDates = [...new Set(dates)];
+    expect(uniqueDates.length).toBeGreaterThan(1);
+  });
+
+  it('should return empty array for empty posts', () => {
+    const schedule = generateSchedule([], refDate, defaultConfig);
+    expect(schedule).toHaveLength(0);
   });
 });
