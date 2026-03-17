@@ -31,7 +31,7 @@ function broadcast(data: object) {
   for (const c of clients) sendSSE(c, data);
 }
 
-function addLog(target: 'chrome' | 'scheduler' | 'system', text: string) {
+export function addLog(target: 'chrome' | 'scheduler' | 'system', text: string) {
   const entry: LogEntry = { target, line: text, ts: new Date().toISOString() };
   logs.push(entry);
   if (logs.length > MAX_LOGS) logs.shift();
@@ -59,22 +59,48 @@ function findChrome(): string | null {
   return null;
 }
 
-async function checkChromePort(): Promise<boolean> {
+export async function checkChromePort(): Promise<boolean> {
   return new Promise((resolve) => {
-    const req = http.get('http://localhost:9222/json', (res) => {
-      resolve(res.statusCode === 200);
+    const req = http.get('http://localhost:9222/json/version', (res) => {
+      if (res.statusCode !== 200) return resolve(false);
+      let body = '';
+      res.on('data', (chunk: Buffer) => { body += chunk; });
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          resolve(typeof data.Browser === 'string' && data.Browser.toLowerCase().includes('chrome'));
+        } catch {
+          resolve(false);
+        }
+      });
     });
     req.on('error', () => resolve(false));
     req.setTimeout(1000, () => { req.destroy(); resolve(false); });
   });
 }
 
-async function startChrome() {
+export async function startChrome() {
   const already = await checkChromePort();
   if (already) {
     chromeStatus = 'running';
     broadcastStatus();
     addLog('chrome', 'Chrome はすでに起動しています (port 9222)');
+    return;
+  }
+
+  // ポート 9222 が Chrome 以外のプロセスに使われていないかチェック（TCP レベル）
+  const portInUse = await new Promise<boolean>((resolve) => {
+    const net = require('net') as typeof import('net');
+    const sock = net.createConnection({ port: 9222, host: '127.0.0.1' });
+    sock.setTimeout(500);
+    sock.on('connect', () => { sock.destroy(); resolve(true); });
+    sock.on('error', () => resolve(false));
+    sock.on('timeout', () => { sock.destroy(); resolve(false); });
+  });
+  if (portInUse) {
+    addLog('chrome', 'エラー: ポート 9222 が他のアプリケーションに使用されています');
+    addLog('chrome', '  該当アプリを終了するか、タスクマネージャーで PID を確認してください');
+    addLog('chrome', '  コマンド: netstat -ano | findstr ":9222"');
     return;
   }
 
@@ -119,7 +145,7 @@ async function startChrome() {
 
 // ─── Scheduler ────────────────────────────────────────────────────────────────
 
-function startScheduler() {
+export function startScheduler() {
   if (schedulerProc) return;
 
   schedulerStatus = 'running';
@@ -147,7 +173,7 @@ function startScheduler() {
   });
 }
 
-function stopScheduler() {
+export function stopScheduler() {
   if (!schedulerProc) return;
   schedulerProc.kill();
   schedulerProc = null;
@@ -158,7 +184,10 @@ function stopScheduler() {
 
 // ─── HTTP Server ──────────────────────────────────────────────────────────────
 
-const HTML = readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
+let HTML = '';
+try {
+  HTML = readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
+} catch { /* テスト環境では index.html が存在しないため無視 */ }
 
 function parseBody(req: http.IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
@@ -221,10 +250,27 @@ const server = http.createServer(async (req, res) => {
   res.end();
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  const url = `http://localhost:${PORT}`;
-  console.log(`X Scheduler GUI → ${url}`);
-  addLog('system', `GUI 起動: ${url}`);
-  // Auto-open browser
-  exec(`start ${url}`);
-});
+export function resetState() {
+  chromeStatus = 'stopped';
+  schedulerStatus = 'stopped';
+  schedulerProc = null;
+  logs.length = 0;
+  clients.clear();
+}
+
+export function getState() {
+  return {
+    chromeStatus,
+    schedulerStatus,
+    logs: [...logs],
+  };
+}
+
+if (require.main === module) {
+  server.listen(PORT, '127.0.0.1', () => {
+    const url = `http://localhost:${PORT}`;
+    console.log(`X Scheduler GUI → ${url}`);
+    addLog('system', `GUI 起動: ${url}`);
+    exec(`start ${url}`);
+  });
+}

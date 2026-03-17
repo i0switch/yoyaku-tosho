@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "title": "フォントの選び方",
+    "axes": {
+      "style_age": {
+        "old": "オールド",
+        "modern": "モダン"
+      },
+      "family": {
+        "serif": "明朝体",
+        "sans": "ゴシック体"
+      }
+    }
+  },
+  "fonts": {
+    "modern_sans": {
+      "recommended": ["新ゴ", "UD新ゴ", "Shorai Sans", "カクミン"],
+      "others": ["ゴシックMB101", "中ゴシックBBB", "見出しゴMB31", "太ゴB101"]
+    },
+    "modern_serif": {
+      "recommended": ["A1明朝", "黎ミン"],
+      "others": ["しまなみ", "みちくさ"]
+    },
+    "old_sans": {
+      "recommended": ["じゅん", "丸フォーク"],
+      "others": ["シネマレター", "那欽"]
+    },
+    "old_serif": {
+      "recommended": ["リュウミン", "A1明朝"],
+      "others": ["きざはし金陵", "游築36ポ仮名"]
+    }
+  }
+}

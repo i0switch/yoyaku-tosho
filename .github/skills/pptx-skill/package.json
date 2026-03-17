@@ -1,0 +1,9 @@
+{
+    "name": "pptx-skill",
+    "version": "1.0.0",
+    "description": "Google Slides Generator for Claude Code",
+    "main": "lib/render-engine.js",
+    "dependencies": {
+        "pptxgenjs": "^3.12.0"
+    }
+}

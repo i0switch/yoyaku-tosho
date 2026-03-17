@@ -11,6 +11,12 @@ storageState.json
 .codex/
 .gemini/
 .claude/settings.local.json
+.claude/agents/
+.claude/commands/
+.claude/copilot-instructions.md
+.claude/hooks/
+.claude/skills/
+.claude/workflows/
 .mcp.json
 
 # Build artifacts
