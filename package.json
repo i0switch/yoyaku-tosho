@@ -9,7 +9,7 @@
     "setup-auth": "ts-node src/cli/setupAuth.ts",
     "chrome-debug": "start chrome --remote-debugging-port=9222 --user-data-dir=\"%TEMP%\\chrome-automation\"",
     "test": "jest",
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/gui/index.html', 'dist/gui/index.html')\"",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts"
   },

@@ -127,7 +127,7 @@ function startScheduler() {
   addLog('scheduler', 'スケジューラーを起動中...');
 
   schedulerProc = spawn(
-    'npx', ['ts-node', 'src/cli/index.ts', '--cdp', 'http://localhost:9222'],
+    'node', ['dist/cli/index.js', '--cdp', 'http://localhost:9222'],
     { cwd: CWD, shell: true }
   );
 

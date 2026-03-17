@@ -12,3 +12,7 @@ storageState.json
 .gemini/
 .claude/settings.local.json
 .mcp.json
+
+# Build artifacts
+dist/
+*.zip
